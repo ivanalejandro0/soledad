@@ -147,6 +147,7 @@ class SQLCipherDatabase(sqlite_backend.SQLitePartialExpandDatabase):
 
     _index_storage_value = 'expand referenced encrypted'
     k_lock = threading.Lock()
+    update_indexes_lock = threading.Lock()
     _syncer = None
 
     def __init__(self, sqlcipher_file, password, document_factory=None,
@@ -409,12 +410,13 @@ class SQLCipherDatabase(sqlite_backend.SQLitePartialExpandDatabase):
         :param doc: The new version of the document.
         :type doc: u1db.Document
         """
-        sqlite_backend.SQLitePartialExpandDatabase._put_and_update_indexes(
-            self, old_doc, doc)
-        c = self._db_handle.cursor()
-        c.execute('UPDATE document SET syncable=? '
-                  'WHERE doc_id=?',
-                  (doc.syncable, doc.doc_id))
+        with self.update_indexes_lock:
+            sqlite_backend.SQLitePartialExpandDatabase._put_and_update_indexes(
+                self, old_doc, doc)
+            c = self._db_handle.cursor()
+            c.execute('UPDATE document SET syncable=? '
+                      'WHERE doc_id=?',
+                      (doc.syncable, doc.doc_id))
 
     def _get_doc(self, doc_id, check_for_conflicts=False):
         """
