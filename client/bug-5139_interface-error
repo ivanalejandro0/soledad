@@ -1,0 +1,1 @@
+  o Add lock for update_indexes call, prevents concurrent access to the db. Closes #5139.
